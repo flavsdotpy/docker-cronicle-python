@@ -1,4 +1,4 @@
-FROM soulteary/cronicle:latest
+FROM soulteary/cronicle:0.9.46
 
 ENV PYTHONUNBUFFERED=1
 
