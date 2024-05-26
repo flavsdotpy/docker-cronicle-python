@@ -50,9 +50,9 @@ try:
             shutil.copy2(tmp_req_file, event_runtime_path / "requirements.txt")
         os.remove(tmp_req_file)
 
+    env = os.environ.copy()
     if environment_variables:
         print("Setting up environment variables: ")
-        env = os.environ.copy()
         for env_var in environment_variables:
             env_var_key, env_var_val = env_var.split("=")
             print(env_var_key)
@@ -64,6 +64,12 @@ try:
 
     subprocess.check_call([sys.executable, event_runtime_path / script_path, *split_params], env=env)
 
-    print('{ "complete": 1 }')
-except:
-    print('{ "complete": 1, "code": 999, "description": "Failed to execute." }')
+    print(json.dumps({
+        "complete": 1
+    }))
+except Exception as e:
+    print(json.dumps({
+        "complete": 1,
+        "code": 999,
+        "description": str(e)
+    }))
