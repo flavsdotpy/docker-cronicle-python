@@ -29,8 +29,6 @@ Default account and password:
 
 ## Adding a new Python script to run
 
-![](./docs/job.png)
-
 * Copy your python script to `$HOME/.cronicle/scripts/python`
 * Open [Cronicle console](localhost:3012)
 * Go to `Schedule > [+] Add event...`
