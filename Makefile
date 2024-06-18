@@ -2,7 +2,7 @@ prepare:
 	mkdir $$HOME/.cronicle
 
 build:
-	docker build -t cronicle-python ./docker
+	docker build -t cronicle-python .
 
 run:
 	docker run \
