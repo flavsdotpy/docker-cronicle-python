@@ -10,7 +10,8 @@ from pathlib import Path
 from uuid import uuid4
 
 
-PYTHON_RUNTIME_PATH = Path("_runtime/python")
+ROOT_PYTHON_RUNTIME_PATH = Path("_runtime/python")
+ROOT_SOURCE_SCRIPTS_PATH = Path("scripts/python")
 
 
 try:
@@ -18,36 +19,37 @@ try:
     data = json.loads(stdinput)
 
     event_id = data["event"]
-    script_path = data["params"]["scriptpath"]
+    source_script_path = data["params"]["scriptpath"]
     required_packages = data["params"]["requirements"].splitlines()
     environment_variables = data["params"]["environ"].splitlines()
     params = data["params"]["params"]
 
-    event_runtime_path = PYTHON_RUNTIME_PATH / str(event_id)
-    if not event_runtime_path.exists():
-        print(f"Initializing event runtime path: {event_runtime_path}")
-        event_runtime_path.mkdir(parents=True)
-        shutil.copy2(f"scripts/python/{script_path}", event_runtime_path / script_path)
-        open(event_runtime_path / "requirements.txt", 'w').close()
+    job_script_path = Path(ROOT_PYTHON_RUNTIME_PATH / str(event_id) / source_script_path)
+    job_runtime_path = job_script_path.parent
+    if not job_runtime_path.exists():
+        print(f"Initializing event runtime path: {job_runtime_path}")
+        job_runtime_path.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT_SOURCE_SCRIPTS_PATH / source_script_path, job_script_path)
+        open(job_runtime_path / "requirements.txt", 'w').close()
     elif (
-        hashlib.md5(open(f"scripts/python/{script_path}","rb").read()).hexdigest() !=
-        hashlib.md5(open(event_runtime_path / script_path,"rb").read()).hexdigest()
+        hashlib.md5(open(ROOT_SOURCE_SCRIPTS_PATH / source_script_path, "rb").read()).hexdigest() !=
+        hashlib.md5(open(job_script_path,"rb").read()).hexdigest()
     ):
         print("Script changed... Updating...")
-        shutil.copy2(f"scripts/python/{script_path}", event_runtime_path / script_path)
+        shutil.copy2(ROOT_SOURCE_SCRIPTS_PATH / source_script_path, job_script_path)
 
     if required_packages:
         tmp_req_file = f"{uuid4()}.txt"
         with open(tmp_req_file, "w") as fout:
             fout.writelines(required_packages)
         if (
-            hashlib.md5(open(event_runtime_path / "requirements.txt","rb").read()).hexdigest() !=
+            hashlib.md5(open(job_runtime_path / "requirements.txt","rb").read()).hexdigest() !=
             hashlib.md5(open(tmp_req_file,"rb").read()).hexdigest()
         ):
             print("Installing dependencies...")
             print("")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "-t", event_runtime_path, *required_packages])
-            shutil.copy2(tmp_req_file, event_runtime_path / "requirements.txt")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-t", job_runtime_path, *required_packages])
+            shutil.copy2(tmp_req_file, job_runtime_path / "requirements.txt")
         os.remove(tmp_req_file)
 
     env = os.environ.copy()
@@ -62,7 +64,7 @@ try:
     if params:
         split_params = shlex.split(params)
 
-    subprocess.check_call([sys.executable, event_runtime_path / script_path, *split_params], env=env)
+    subprocess.check_call([sys.executable, job_script_path, *split_params], env=env)
 
     print(json.dumps({
         "complete": 1
